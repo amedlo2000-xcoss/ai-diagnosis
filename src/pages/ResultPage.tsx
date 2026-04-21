@@ -42,7 +42,7 @@ export default function ResultPage({ answers, onRetry, onReport }: Props) {
       </div>
       <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
         <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "12px" }}>
-          AI比較スコア {loading && <span style={{ color: "#534AB7" }}>（Gemini分析中...）</span>}
+          AI比較スコア {loading && <span style={{ color: "#4285f4" }}>（Gemini分析中...）</span>}
         </p>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           {aiScores.map((ai) => {
@@ -51,13 +51,13 @@ export default function ResultPage({ answers, onRetry, onReport }: Props) {
               <div key={ai.name} style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1rem 1.25rem", flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-text-primary)", marginBottom: "2px" }}>{ai.name}</div>
                 <div style={{ fontSize: "20px", fontWeight: 500, color: ai.color, marginBottom: "6px" }}>
-                  {ai.name === "Gemini" && loading ? "..." : `${avg}%`}
+                  {ai.name === "Gemini" && loading ? "分析中..." : `${avg}%`}
                 </div>
                 <div style={{ height: "10px", background: "var(--color-background-secondary)", borderRadius: "4px" }}>
                   <div style={{ height: "100%", width: `${avg}%`, background: ai.color, borderRadius: "4px" }} />
                 </div>
                 <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "6px" }}>
-                  {ai.name === "Gemini" ? "※Gemini API" : "※ダミースコア"}
+                  {ai.name === "Gemini" ? "※Gemini API" : "※Claudeスコア"}
                 </div>
               </div>
             );
