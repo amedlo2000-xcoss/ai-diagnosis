@@ -38,7 +38,7 @@ export async function fetchGeminiScore(axisScores: AxisScores): Promise<AxisScor
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -48,10 +48,5 @@ export async function fetchGeminiScore(axisScores: AxisScores): Promise<AxisScor
       }
     );
     const data = await res.json();
-    const text = data.candidates[0].content.parts[0].text;
-    const json = text.match(/\{.*\}/s)?.[0];
-    return JSON.parse(json || "{}");
-  } catch {
-    return axisScores;
-  }
-}
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const match = text.ma
