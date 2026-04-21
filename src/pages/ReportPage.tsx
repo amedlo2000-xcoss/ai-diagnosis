@@ -1,0 +1,88 @@
+import type { AxisScores, DiagnosisResult } from "../types";
+import { AXIS_KEYS, AXIS_LABELS } from "../data/scoring";
+import { AI_SCORES, calcAIAverage } from "../data/aiScores";
+import { generateReportData } from "../data/reportData";
+import RadarChartCard from "../components/RadarChartCard";
+import RecommendationCard from "../components/RecommendationCard";
+import ResultHeader from "../components/ResultHeader";
+
+interface Props {
+  axisScores: AxisScores;
+  totalScore: number;
+  diagnosis: DiagnosisResult;
+  onBack: () => void;
+}
+
+export default function ReportPage({ axisScores, totalScore, diagnosis, onBack }: Props) {
+  const report = generateReportData(totalScore, axisScores, diagnosis, AI_SCORES);
+  return (
+    <div style={{ padding: "1.5rem 0" }}>
+      <ResultHeader title="詳細レポート" subtitle="AI複数視点による分析レポートです" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "1rem" }}>
+        <div style={{ background: "var(--color-background-secondary)", borderRadius: "8px", padding: "1rem", textAlign: "center" }}>
+          <div style={{ fontSize: "13px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>総合スコア</div>
+          <div style={{ fontSize: "28px", fontWeight: 500, color: "var(--color-text-primary)" }}>{totalScore}<span style={{ fontSize: "14px", color: "var(--color-text-secondary)" }}>pt</span></div>
+        </div>
+        <div style={{ background: "var(--color-background-secondary)", borderRadius: "8px", padding: "1rem", textAlign: "center" }}>
+          <div style={{ fontSize: "13px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>診断タイプ</div>
+          <div style={{ fontSize: "16px", fontWeight: 500, color: diagnosis.color, marginTop: "4px" }}>{diagnosis.type}</div>
+        </div>
+      </div>
+      <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
+        <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "12px" }}>AI別スコア比較</p>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          {AI_SCORES.map((ai) => {
+            const avg = calcAIAverage(ai);
+            return (
+              <div key={ai.name} style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1rem 1.25rem", flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "4px" }}>{ai.name}</div>
+                <div style={{ fontSize: "22px", fontWeight: 500, color: ai.color, marginBottom: "6px" }}>{avg}%</div>
+                <div style={{ height: "8px", background: "var(--color-background-secondary)", borderRadius: "4px" }}>
+                  <div style={{ height: "100%", width: `${avg}%`, background: ai.color, borderRadius: "4px" }} />
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "6px" }}>※APIダミースコア</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem", overflowX: "auto" }}>
+        <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "12px" }}>評価項目別比較</p>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+          <thead>
+            <tr style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
+              <th style={{ textAlign: "left", padding: "8px 0", fontWeight: 500, color: "var(--color-text-secondary)" }}>軸</th>
+              <th style={{ padding: "8px", textAlign: "center", color: "#534AB7", fontWeight: 500 }}>あなた</th>
+              {AI_SCORES.map((ai) => (
+                <th key={ai.name} style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: ai.color }}>{ai.name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {AXIS_KEYS.map((key) => (
+              <tr key={key} style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
+                <td style={{ padding: "8px 0", color: "var(--color-text-secondary)" }}>{AXIS_LABELS[key]}</td>
+                <td style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: "#534AB7" }}>{axisScores[key]}%</td>
+                {AI_SCORES.map((ai) => (
+                  <td key={ai.name} style={{ padding: "8px", textAlign: "center" }}>{ai.scores[key]}%</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <RadarChartCard axisScores={axisScores} aiScores={AI_SCORES} />
+      <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
+        <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "8px" }}>共通見解</p>
+        <p style={{ fontSize: "14px", lineHeight: 1.7, color: "var(--color-text-secondary)", marginBottom: "1.25rem" }}>{report.commonInsight}</p>
+        <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "1.25rem 0" }} />
+        <RecommendationCard title="改善提案" items={diagnosis.improvements} />
+        <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "1.25rem 0" }} />
+        <RecommendationCard title="おすすめ次のアクション" items={diagnosis.actions} accentColor={diagnosis.color} accentBg={diagnosis.bg} />
+      </div>
+      <button onClick={onBack} style={{ width: "100%", padding: "10px 24px", border: "0.5px solid var(--color-border-secondary)", borderRadius: "8px", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: "14px", fontWeight: 500, cursor: "pointer", marginTop: "0.5rem" }}>
+        ← 診断結果に戻る
+      </button>
+    </div>
+  );
+}
