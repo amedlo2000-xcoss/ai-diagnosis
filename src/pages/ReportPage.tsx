@@ -16,6 +16,15 @@ interface Props {
 
 export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores, onBack }: Props) {
   const report = generateReportData(totalScore, axisScores, diagnosis, aiScores);
+
+  if (!aiScores || aiScores.length === 0) {
+    return (
+      <div style={{ padding: "1.5rem 0" }}>
+        <p style={{ color: "var(--color-text-secondary)" }}>読み込み中...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "1.5rem 0" }}>
       <ResultHeader title="詳細レポート" subtitle="AI複数視点による分析レポートです" />
@@ -42,7 +51,7 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores
                   <div style={{ height: "100%", width: `${avg}%`, background: ai.color, borderRadius: "4px" }} />
                 </div>
                 <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "6px" }}>
-                  {ai.name === "Gemini" ? "※Gemini API" : "※ダミースコア"}
+                  {ai.name === "Gemini" ? "※Gemini API" : "※Claudeスコア"}
                 </div>
               </div>
             );
