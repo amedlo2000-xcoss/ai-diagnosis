@@ -1,6 +1,6 @@
-import type { AxisScores, DiagnosisResult } from "../types";
+import type { AxisScores, DiagnosisResult, AIScore } from "../types";
 import { AXIS_KEYS, AXIS_LABELS } from "../data/scoring";
-import { AI_SCORES, calcAIAverage } from "../data/aiScores";
+import { calcAIAverage } from "../data/aiScores";
 import { generateReportData } from "../data/reportData";
 import RadarChartCard from "../components/RadarChartCard";
 import RecommendationCard from "../components/RecommendationCard";
@@ -10,11 +10,12 @@ interface Props {
   axisScores: AxisScores;
   totalScore: number;
   diagnosis: DiagnosisResult;
+  aiScores: AIScore[];
   onBack: () => void;
 }
 
-export default function ReportPage({ axisScores, totalScore, diagnosis, onBack }: Props) {
-  const report = generateReportData(totalScore, axisScores, diagnosis, AI_SCORES);
+export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores, onBack }: Props) {
+  const report = generateReportData(totalScore, axisScores, diagnosis, aiScores);
   return (
     <div style={{ padding: "1.5rem 0" }}>
       <ResultHeader title="詳細レポート" subtitle="AI複数視点による分析レポートです" />
@@ -31,7 +32,7 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, onBack }
       <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
         <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "12px" }}>AI別スコア比較</p>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          {AI_SCORES.map((ai) => {
+          {aiScores.map((ai) => {
             const avg = calcAIAverage(ai);
             return (
               <div key={ai.name} style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1rem 1.25rem", flex: 1, minWidth: 0 }}>
@@ -40,7 +41,9 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, onBack }
                 <div style={{ height: "8px", background: "var(--color-background-secondary)", borderRadius: "4px" }}>
                   <div style={{ height: "100%", width: `${avg}%`, background: ai.color, borderRadius: "4px" }} />
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "6px" }}>※APIダミースコア</div>
+                <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "6px" }}>
+                  {ai.name === "Gemini" ? "※Gemini API" : "※ダミースコア"}
+                </div>
               </div>
             );
           })}
@@ -53,7 +56,7 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, onBack }
             <tr style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
               <th style={{ textAlign: "left", padding: "8px 0", fontWeight: 500, color: "var(--color-text-secondary)" }}>軸</th>
               <th style={{ padding: "8px", textAlign: "center", color: "#534AB7", fontWeight: 500 }}>あなた</th>
-              {AI_SCORES.map((ai) => (
+              {aiScores.map((ai) => (
                 <th key={ai.name} style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: ai.color }}>{ai.name}</th>
               ))}
             </tr>
@@ -63,7 +66,7 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, onBack }
               <tr key={key} style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
                 <td style={{ padding: "8px 0", color: "var(--color-text-secondary)" }}>{AXIS_LABELS[key]}</td>
                 <td style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: "#534AB7" }}>{axisScores[key]}%</td>
-                {AI_SCORES.map((ai) => (
+                {aiScores.map((ai) => (
                   <td key={ai.name} style={{ padding: "8px", textAlign: "center" }}>{ai.scores[key]}%</td>
                 ))}
               </tr>
@@ -71,7 +74,7 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, onBack }
           </tbody>
         </table>
       </div>
-      <RadarChartCard axisScores={axisScores} aiScores={AI_SCORES} />
+      <RadarChartCard axisScores={axisScores} aiScores={aiScores} />
       <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
         <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "8px" }}>共通見解</p>
         <p style={{ fontSize: "14px", lineHeight: 1.7, color: "var(--color-text-secondary)", marginBottom: "1.25rem" }}>{report.commonInsight}</p>

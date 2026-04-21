@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Answer, AxisScores, DiagnosisResult } from "./types";
+import type { Answer, AxisScores, DiagnosisResult } from "./types";
+import { AI_SCORES } from "./data/aiScores";
 import TopPage from "./pages/TopPage";
 import DiagnosisPage from "./pages/DiagnosisPage";
 import ResultPage from "./pages/ResultPage";
 import ReportPage from "./pages/ReportPage";
 
-// ページの種類
 type Page = "top" | "diagnosis" | "result" | "report";
 
 export default function App() {
@@ -14,22 +14,13 @@ export default function App() {
   const [axisScores, setAxisScores] = useState<AxisScores | null>(null);
   const [totalScore, setTotalScore] = useState<number>(0);
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
+  const [aiScores, setAiScores] = useState(AI_SCORES);
 
   return (
-    <div
-      style={{
-        maxWidth: "600px",
-        margin: "0 auto",
-        padding: "0 1rem",
-        fontFamily: "var(--font-sans)",
-      }}
-    >
-      {/* トップページ */}
+    <div style={{ maxWidth: "600px", margin: "0 auto", padding: "0 1rem", fontFamily: "var(--font-sans)" }}>
       {page === "top" && (
         <TopPage onStart={() => setPage("diagnosis")} />
       )}
-
-      {/* 診断ページ */}
       {page === "diagnosis" && (
         <DiagnosisPage
           onComplete={(ans) => {
@@ -38,8 +29,6 @@ export default function App() {
           }}
         />
       )}
-
-      {/* 診断結果ページ */}
       {page === "result" && (
         <ResultPage
           answers={answers}
@@ -47,21 +36,21 @@ export default function App() {
             setAnswers([]);
             setPage("diagnosis");
           }}
-          onReport={(scores, total, diag) => {
+          onReport={(scores, total, diag, ai) => {
             setAxisScores(scores);
             setTotalScore(total);
             setDiagnosis(diag);
+            setAiScores(ai);
             setPage("report");
           }}
         />
       )}
-
-      {/* レポートページ */}
       {page === "report" && axisScores && diagnosis && (
         <ReportPage
           axisScores={axisScores}
           totalScore={totalScore}
           diagnosis={diagnosis}
+          aiScores={aiScores}
           onBack={() => setPage("result")}
         />
       )}
