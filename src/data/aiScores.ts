@@ -5,11 +5,11 @@ export const AI_SCORES: AIScore[] = [
     name: "Gemini",
     color: "#4285f4",
     scores: {
-      action_volume: 0,
-      contact_frequency: 0,
-      relationship: 0,
-      response_rate: 0,
-      result_connection: 0,
+      action_volume: 50,
+      contact_frequency: 50,
+      relationship: 50,
+      response_rate: 50,
+      result_connection: 50,
     },
   },
   {
@@ -26,6 +26,7 @@ export const AI_SCORES: AIScore[] = [
 ];
 
 export function calcAIAverage(ai: AIScore): number {
+  if (!ai || !ai.scores) return 0;
   const values = Object.values(ai.scores);
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
 }
@@ -38,7 +39,7 @@ export async function fetchGeminiScore(axisScores: AxisScores): Promise<AxisScor
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -49,4 +50,17 @@ export async function fetchGeminiScore(axisScores: AxisScores): Promise<AxisScor
     );
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    const match = text.ma
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return axisScores;
+    const parsed = JSON.parse(match[0]);
+    return {
+      action_volume: Number(parsed.action_volume) || axisScores.action_volume,
+      contact_frequency: Number(parsed.contact_frequency) || axisScores.contact_frequency,
+      relationship: Number(parsed.relationship) || axisScores.relationship,
+      response_rate: Number(parsed.response_rate) || axisScores.response_rate,
+      result_connection: Number(parsed.result_connection) || axisScores.result_connection,
+    };
+  } catch {
+    return axisScores;
+  }
+}
