@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import type { Answer, AxisScores, DiagnosisResult } from "../types";
 import { calcAxisScores, calcTotalScore, AXIS_LABELS, AXIS_KEYS } from "../data/scoring";
 import { diagnoseType } from "../data/diagnosis";
-import { AI_SCORES, calcAIAverage, fetchGeminiScore } from "../data/aiScores";
+import { AI_SCORES, calcAIAverage, fetchGeminiScore, calcClaudeScore } from "../data/aiScores";
 import SummaryCard from "../components/SummaryCard";
 import ScoreCard from "../components/ScoreCard";
 import RecommendationCard from "../components/RecommendationCard";
@@ -22,12 +22,22 @@ export default function ResultPage({ answers, onRetry, onReport }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const claudeScores = calcClaudeScore(axisScores);
     fetchGeminiScore(axisScores).then((geminiScores) => {
       setAiScores((prev) =>
-        prev.map((ai) => ai.name === "Gemini" ? { ...ai, scores: geminiScores } : ai)
+        prev.map((ai) => {
+          if (ai.name === "Gemini") return { ...ai, scores: geminiScores };
+          if (ai.name === "Claude") return { ...ai, scores: claudeScores };
+          return ai;
+        })
       );
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => {
+      setAiScores((prev) =>
+        prev.map((ai) => ai.name === "Claude" ? { ...ai, scores: claudeScores } : ai)
+      );
+      setLoading(false);
+    });
   }, []);
 
   return (
@@ -57,7 +67,7 @@ export default function ResultPage({ answers, onRetry, onReport }: Props) {
                   <div style={{ height: "100%", width: `${avg}%`, background: ai.color, borderRadius: "4px" }} />
                 </div>
                 <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "6px" }}>
-                  {ai.name === "Gemini" ? "※Gemini API" : "※Claudeスコア"}
+                  {ai.name === "Gemini" ? "※Gemini API" : "※Claude分析"}
                 </div>
               </div>
             );

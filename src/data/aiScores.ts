@@ -16,11 +16,11 @@ export const AI_SCORES: AIScore[] = [
     name: "Claude",
     color: "#534AB7",
     scores: {
-      action_volume: 78,
-      contact_frequency: 74,
-      relationship: 82,
-      response_rate: 76,
-      result_connection: 72,
+      action_volume: 50,
+      contact_frequency: 50,
+      relationship: 50,
+      response_rate: 50,
+      result_connection: 50,
     },
   },
 ];
@@ -29,6 +29,17 @@ export function calcAIAverage(ai: AIScore): number {
   if (!ai || !ai.scores) return 0;
   const values = Object.values(ai.scores);
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+}
+
+// Claudeのスコアをユーザーの回答から計算する
+export function calcClaudeScore(axisScores: AxisScores): AxisScores {
+  return {
+    action_volume: Math.min(100, Math.round(axisScores.action_volume * 0.95 + 5)),
+    contact_frequency: Math.min(100, Math.round(axisScores.contact_frequency * 0.92 + 8)),
+    relationship: Math.min(100, Math.round(axisScores.relationship * 0.98 + 3)),
+    response_rate: Math.min(100, Math.round(axisScores.response_rate * 0.94 + 6)),
+    result_connection: Math.min(100, Math.round(axisScores.result_connection * 0.96 + 4)),
+  };
 }
 
 export async function fetchGeminiScore(axisScores: AxisScores): Promise<AxisScores> {
