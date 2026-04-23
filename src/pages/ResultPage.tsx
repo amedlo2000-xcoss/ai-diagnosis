@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Answer, AxisScores, DiagnosisResult } from "../types";
+import { type Answer, type AxisScores, type DiagnosisResult, type UserType, USER_TYPE_LABELS } from "../types";
 import { calcAxisScores, calcTotalScore, AXIS_LABELS, AXIS_KEYS } from "../data/scoring";
 import { diagnoseType } from "../data/diagnosis";
 import { AI_SCORES, calcAIAverage, fetchGeminiScore, calcClaudeScore } from "../data/aiScores";
@@ -10,14 +10,15 @@ import ResultHeader from "../components/ResultHeader";
 
 interface Props {
   answers: Answer[];
+  userType: UserType;
   onRetry: () => void;
   onReport: (axisScores: AxisScores, total: number, diagnosis: DiagnosisResult, aiScores: typeof AI_SCORES) => void;
 }
 
-export default function ResultPage({ answers, onRetry, onReport }: Props) {
+export default function ResultPage({ answers, userType, onRetry, onReport }: Props) {
   const axisScores = calcAxisScores(answers);
   const total = calcTotalScore(axisScores);
-  const diagnosis = diagnoseType(axisScores, total);
+  const diagnosis = diagnoseType(axisScores, total, userType);
   const [aiScores, setAiScores] = useState(AI_SCORES);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +43,7 @@ export default function ResultPage({ answers, onRetry, onReport }: Props) {
 
   return (
     <div style={{ padding: "1.5rem 0" }}>
-      <ResultHeader title="診断結果" subtitle="あなたの行動傾向と改善ポイントです" />
+      <ResultHeader title="診断結果" subtitle={`${USER_TYPE_LABELS[userType]}の行動傾向と改善ポイントです`} />
       <SummaryCard totalScore={total} diagnosis={diagnosis} />
       <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
         <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "12px" }}>軸別スコア</p>

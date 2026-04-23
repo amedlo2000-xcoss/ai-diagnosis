@@ -1,4 +1,4 @@
-import type { AxisScores, DiagnosisResult, AIScore } from "../types";
+import { type AxisScores, type DiagnosisResult, type AIScore, type UserType, USER_TYPE_LABELS } from "../types";
 import { AXIS_KEYS, AXIS_LABELS } from "../data/scoring";
 import { calcAIAverage } from "../data/aiScores";
 import { generateReportData } from "../data/reportData";
@@ -11,10 +11,11 @@ interface Props {
   totalScore: number;
   diagnosis: DiagnosisResult;
   aiScores: AIScore[];
+  userType: UserType;
   onBack: () => void;
 }
 
-export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores, onBack }: Props) {
+export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores, userType, onBack }: Props) {
   const report = generateReportData(totalScore, axisScores, diagnosis, aiScores);
 
   if (!aiScores || aiScores.length === 0) {
@@ -27,7 +28,7 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores
 
   return (
     <div style={{ padding: "1.5rem 0" }}>
-      <ResultHeader title="詳細レポート" subtitle="AI複数視点による分析レポートです" />
+      <ResultHeader title="詳細レポート" subtitle={`${USER_TYPE_LABELS[userType]} · AI複数視点による分析レポートです`} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "1rem" }}>
         <div style={{ background: "var(--color-background-secondary)", borderRadius: "8px", padding: "1rem", textAlign: "center" }}>
           <div style={{ fontSize: "13px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>総合スコア</div>
@@ -64,7 +65,7 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores
           <thead>
             <tr style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
               <th style={{ textAlign: "left", padding: "8px 0", fontWeight: 500, color: "var(--color-text-secondary)" }}>軸</th>
-              <th style={{ padding: "8px", textAlign: "center", color: "#534AB7", fontWeight: 500 }}>あなた</th>
+              <th style={{ padding: "8px", textAlign: "center", color: "#534AB7", fontWeight: 500 }}>あなたの<br />回答スコア</th>
               {aiScores.map((ai) => (
                 <th key={ai.name} style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: ai.color }}>{ai.name}</th>
               ))}
@@ -74,7 +75,7 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores
             {AXIS_KEYS.map((key) => (
               <tr key={key} style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
                 <td style={{ padding: "8px 0", color: "var(--color-text-secondary)" }}>{AXIS_LABELS[key]}</td>
-                <td style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: "#534AB7" }}>{axisScores[key]}%</td>
+                <td style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: "#534AB7" }}>{Math.round(axisScores[key] * 0.8)}%</td>
                 {aiScores.map((ai) => (
                   <td key={ai.name} style={{ padding: "8px", textAlign: "center" }}>{ai.scores[key]}%</td>
                 ))}

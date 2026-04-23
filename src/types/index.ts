@@ -1,3 +1,12 @@
+export type UserType = "freelance" | "sole_proprietor" | "side_hustle" | "solopreneur";
+
+export const USER_TYPE_LABELS: Record<UserType, string> = {
+  freelance: "フリーランス",
+  sole_proprietor: "個人事業主",
+  side_hustle: "副業者",
+  solopreneur: "ソロプレナー",
+};
+
 export type AxisKey =
   | "action_volume"
   | "contact_frequency"
