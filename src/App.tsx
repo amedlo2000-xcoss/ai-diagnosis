@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Answer, AxisScores, DiagnosisResult, UserType } from "./types";
 import { AI_SCORES } from "./data/aiScores";
 import TopPage from "./pages/TopPage";
@@ -11,6 +11,10 @@ type Page = "top" | "diagnosis" | "result" | "report" | "register";
 
 export default function App() {
   const [page, setPage] = useState<Page>("top");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [page]);
   const [userType, setUserType] = useState<UserType>("freelance");
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [axisScores, setAxisScores] = useState<AxisScores | null>(null);
