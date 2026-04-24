@@ -195,7 +195,9 @@ export default function RegisterPage({ onBack, onComplete, userType, axisScores,
 
       onComplete();
     } catch (err) {
-      setError(getErrorMessage(err));
+      console.error("登録エラー:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`${getErrorMessage(err)}\n\n[詳細] ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -348,7 +350,7 @@ export default function RegisterPage({ onBack, onComplete, userType, axisScores,
         {/* エラー表示 */}
         {error && (
           <div style={{ background: "rgba(220,53,69,0.12)", border: "1px solid rgba(220,53,69,0.4)", borderRadius: "8px", padding: "12px 14px", marginBottom: "1rem" }}>
-            <p style={{ fontSize: "13px", color: "#FF6B6B", margin: 0 }}>{error}</p>
+            <p style={{ fontSize: "13px", color: "#FF6B6B", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{error}</p>
           </div>
         )}
 
