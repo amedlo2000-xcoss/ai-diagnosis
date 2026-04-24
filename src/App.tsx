@@ -5,8 +5,9 @@ import TopPage from "./pages/TopPage";
 import DiagnosisPage from "./pages/DiagnosisPage";
 import ResultPage from "./pages/ResultPage";
 import ReportPage from "./pages/ReportPage";
+import RegisterPage from "./pages/RegisterPage";
 
-type Page = "top" | "diagnosis" | "result" | "report";
+type Page = "top" | "diagnosis" | "result" | "report" | "register";
 
 export default function App() {
   const [page, setPage] = useState<Page>("top");
@@ -62,6 +63,21 @@ export default function App() {
           aiScores={aiScores}
           userType={userType}
           onBack={() => setPage("result")}
+          onRetry={() => {
+            setAnswers([]);
+            setPage("top");
+          }}
+          onRegister={() => setPage("register")}
+        />
+      )}
+      {page === "register" && axisScores && diagnosis && (
+        <RegisterPage
+          onBack={() => setPage("report")}
+          onComplete={() => setPage("report")}
+          userType={userType}
+          axisScores={axisScores}
+          totalScore={totalScore}
+          diagnosis={diagnosis}
         />
       )}
     </div>

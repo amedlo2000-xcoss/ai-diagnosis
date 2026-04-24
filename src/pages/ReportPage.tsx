@@ -13,9 +13,11 @@ interface Props {
   aiScores: AIScore[];
   userType: UserType;
   onBack: () => void;
+  onRetry: () => void;
+  onRegister: () => void;
 }
 
-export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores, userType, onBack }: Props) {
+export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores, userType, onBack, onRetry, onRegister }: Props) {
   const report = generateReportData(totalScore, axisScores, diagnosis, aiScores);
 
   if (!aiScores || aiScores.length === 0) {
@@ -95,6 +97,18 @@ export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores
       </div>
       <button onClick={onBack} style={{ width: "100%", padding: "10px 24px", border: "0.5px solid var(--color-border-secondary)", borderRadius: "8px", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: "14px", fontWeight: 500, cursor: "pointer", marginTop: "0.5rem" }}>
         ← 診断結果に戻る
+      </button>
+      <button
+        onClick={onRetry}
+        style={{ width: "100%", padding: "12px 24px", border: "0.5px solid var(--color-border-secondary)", borderRadius: "8px", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: "14px", fontWeight: 500, cursor: "pointer", marginTop: "10px" }}
+      >
+        もう一度診断する
+      </button>
+      <button
+        onClick={onRegister}
+        style={{ width: "100%", padding: "13px 24px", background: "#534AB7", color: "#EEEDFE", border: "none", borderRadius: "8px", fontSize: "15px", fontWeight: 600, cursor: "pointer", marginTop: "10px" }}
+      >
+        さらに診断精度をUPしたい
       </button>
     </div>
   );
