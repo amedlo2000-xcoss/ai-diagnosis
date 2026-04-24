@@ -183,7 +183,10 @@ export default function RegisterPage({ onBack, onComplete, userType, axisScores,
         has_children: form.hasChildren || null,
         region: form.region || null,
       }]);
-      if (userError) throw userError;
+      if (userError) {
+        console.error("ai_diagnosis_users insert エラー:", userError, JSON.stringify(userError));
+        throw new Error(JSON.stringify(userError));
+      }
 
       const { error: resultError } = await supabase.from("ai_diagnosis_simple_results").insert([{
         user_id: userId,
@@ -196,7 +199,7 @@ export default function RegisterPage({ onBack, onComplete, userType, axisScores,
       onComplete();
     } catch (err) {
       console.error("登録エラー:", err);
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = err instanceof Error ? (err.message ?? JSON.stringify(err)) : JSON.stringify(err);
       setError(`${getErrorMessage(err)}\n\n[詳細] ${msg}`);
     } finally {
       setLoading(false);
