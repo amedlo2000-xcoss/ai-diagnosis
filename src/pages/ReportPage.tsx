@@ -2,6 +2,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { generateReportSections } from '../data/reportData';
 import { useState } from 'react';
 
+interface DeepForm {
+  hpUrl: string;
+  googleUrl: string;
+  snsUrl: string;
+  storeInfo: string;
+}
+
 function Radar3D({ data }: { data: { subject: string; score: number }[] }) {
   const size = 220;
   const cx = size / 2;
@@ -104,6 +111,7 @@ export default function ReportPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [copied, setCopied] = useState<string | null>(null);
+  const [form, setForm] = useState<DeepForm>({ hpUrl: '', googleUrl: '', snsUrl: '', storeInfo: '' });
   if (!state) { navigate('/'); return null; }
   const { totalScore, rank, axisScores, aiScores, generatedCopy } = state;
   const sections = generateReportSections(axisScores, totalScore);
@@ -204,6 +212,60 @@ export default function ReportPage() {
             <pre style={{fontSize:13, color:'#334155', whiteSpace:'pre-wrap', lineHeight:1.7, background:'#f8fafc', borderRadius:12, padding:16, border:'1px solid #e2e8f0', margin:0, fontFamily:'inherit'}}>{text}</pre>
           </div>
         ))}
+
+        {/* さらに詳しく診断フォーム */}
+        <div style={{background:'linear-gradient(135deg,#fffbeb,#fef3c7)', borderRadius:20,
+          border:'1px solid #fde68a', padding:24}}>
+          <h2 style={{fontSize:16, fontWeight:900, color:'#92400e', marginBottom:4}}>
+            🔍 さらに詳しく診断
+          </h2>
+          <p style={{fontSize:13, color:'#78350f', marginBottom:16, lineHeight:1.6}}>
+            URLや補足情報を入力すると、GeminiがHP・SNS・MEOを総合評価します。
+          </p>
+          <div style={{display:'flex', flexDirection:'column', gap:10}}>
+            {[
+              { key: 'hpUrl',     label: 'HP URL',                      placeholder: 'https://example.com' },
+              { key: 'googleUrl', label: 'GoogleビジネスプロフィールURL', placeholder: 'https://maps.google.com/...' },
+              { key: 'snsUrl',    label: 'SNS URL',                     placeholder: 'https://instagram.com/...' },
+            ].map(({ key, label, placeholder }) => (
+              <div key={key}>
+                <label style={{fontSize:12, fontWeight:600, color:'#92400e', display:'block', marginBottom:4}}>
+                  {label}
+                </label>
+                <input
+                  type="url"
+                  value={form[key as keyof DeepForm]}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  placeholder={placeholder}
+                  style={{width:'100%', padding:'10px 12px', borderRadius:10, border:'1px solid #fde68a',
+                    background:'#fff', fontSize:13, color:'#334155', outline:'none', boxSizing:'border-box'}}
+                />
+              </div>
+            ))}
+            <div>
+              <label style={{fontSize:12, fontWeight:600, color:'#92400e', display:'block', marginBottom:4}}>
+                店舗補足情報（強み・特徴・ターゲットなど）
+              </label>
+              <textarea
+                value={form.storeInfo}
+                onChange={e => setForm(f => ({ ...f, storeInfo: e.target.value }))}
+                placeholder="例：駅近の完全個室ネイルサロン。20〜30代女性向け。OPI使用。"
+                rows={3}
+                style={{width:'100%', padding:'10px 12px', borderRadius:10, border:'1px solid #fde68a',
+                  background:'#fff', fontSize:13, color:'#334155', outline:'none', resize:'vertical',
+                  boxSizing:'border-box', fontFamily:'inherit'}}
+              />
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/deep-diagnosis', { state: { ...state, ...form } })}
+            style={{marginTop:16, width:'100%', padding:'14px', borderRadius:12, fontWeight:700,
+              color:'#fff', fontSize:15, border:'none', cursor:'pointer',
+              background:'linear-gradient(135deg,#1e3a5f,#b45309)',
+              boxShadow:'0 4px 16px rgba(180,83,9,0.3)'}}>
+            AI詳細診断を実行 →
+          </button>
+        </div>
 
         <button onClick={() => navigate('/')}
           style={{width:'100%', padding:'12px', borderRadius:14, fontWeight:500, color:'#64748b', fontSize:14, border:'1px solid #e2e8f0', background:'#fff', cursor:'pointer'}}>
