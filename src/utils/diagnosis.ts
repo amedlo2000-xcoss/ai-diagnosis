@@ -13,7 +13,6 @@ export function getRank(totalScore: number): { rank: string; rankLabel: string }
 export function getDiagnosisType(answers: DiagnosisAnswers, axisScores: AxisScore[]): string {
   const weakAxis = axisScores.reduce((a, b) => a.score < b.score ? a : b);
   const q1 = answers[1] ?? 3;
-  const q10 = answers[10] ?? 0;
 
   if (weakAxis.name === 'AI理解度' || weakAxis.name === '媒体一貫性') {
     if ((answers[3] ?? 3) >= 2 && (answers[4] ?? 3) >= 2 && (answers[5] ?? 3) >= 2) {

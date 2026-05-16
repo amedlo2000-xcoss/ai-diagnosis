@@ -5,9 +5,8 @@ export interface ReportSection {
   items: string[];
 }
 
-export function generateReportSections(axisScores: AxisScore[], totalScore: number): ReportSection[] {
+export function generateReportSections(axisScores: AxisScore[], _totalScore: number): ReportSection[] {
   const weak = axisScores.filter(a => a.score < 50).map(a => a.name);
-  const strong = axisScores.filter(a => a.score >= 70).map(a => a.name);
 
   return [
     {

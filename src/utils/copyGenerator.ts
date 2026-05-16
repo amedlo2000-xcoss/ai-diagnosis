@@ -36,7 +36,7 @@ function getDiffHint(answers: DiagnosisAnswers): string {
   return '地域に根ざした';
 }
 
-export function generateCopy(answers: DiagnosisAnswers, axisScores: AxisScore[]): GeneratedCopy {
+export function generateCopy(answers: DiagnosisAnswers, _axisScores: AxisScore[]): GeneratedCopy {
   const area = getAreaHint(answers);
   const reason = getReasonHint(answers);
   const target = getTargetHint(answers);

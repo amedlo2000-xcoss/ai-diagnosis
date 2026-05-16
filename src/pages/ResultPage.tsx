@@ -93,7 +93,7 @@ function Radar3D({ data }: { data: { subject: string; score: number }[] }) {
   );
 }
 
-function PieChart3D({ score, color, name, label }: { score: number; color: string; name: string; label: string }) {
+function PieChart3D({ score, color, name }: { score: number; color: string; name: string; label: string }) {
   const size = 110;
   const cx = size / 2;
   const cy = size / 2 - 6;
