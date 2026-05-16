@@ -1,11 +1,14 @@
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { fetchGeminiAxisScores } from '../utils/geminiApi';
+import { AxisScore } from '../types';
 
 const RANK_COLORS: Record<string, string> = {
   SS: '#7c3aed', S: '#2563eb', A: '#059669',
   B: '#d97706', C: '#ea580c', D: '#dc2626', E: '#6b7280',
 };
 
-function Radar3D({ data }: { data: { subject: string; score: number }[] }) {
+function Radar3D({ data, loading }: { data: { subject: string; score: number }[]; loading?: boolean }) {
   const size = 220;
   const cx = size / 2;
   const cy = size / 2;
@@ -14,82 +17,76 @@ function Radar3D({ data }: { data: { subject: string; score: number }[] }) {
   const levels = [0.25, 0.5, 0.75, 1.0];
 
   function polar(angle: number, radius: number) {
-    const a = (angle - Math.PI / 2);
-    return {
-      x: cx + radius * Math.cos(a),
-      y: cy + radius * Math.sin(a),
-    };
+    const a = angle - Math.PI / 2;
+    return { x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) };
   }
 
   const angleStep = (2 * Math.PI) / n;
-
   const gridPolygons = levels.map((lv) =>
-    data.map((_, i) => {
-      const p = polar(i * angleStep, r * lv);
-      return `${p.x},${p.y}`;
-    }).join(' ')
+    data.map((_, i) => { const p = polar(i * angleStep, r * lv); return `${p.x},${p.y}`; }).join(' ')
   );
-
   const dataPoints = data.map((d, i) => {
     const p = polar(i * angleStep, r * (d.score / 100));
     return `${p.x},${p.y}`;
   });
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <defs>
-        <radialGradient id="rg" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#fef3c7" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05" />
-        </radialGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <linearGradient id="fill3d" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#b45309" stopOpacity="0.7" />
-          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.2" />
-        </linearGradient>
-      </defs>
+    <div style={{position:'relative', display:'inline-block'}}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+        style={{opacity: loading ? 0.4 : 1, transition:'opacity 0.3s'}}>
+        <defs>
+          <radialGradient id="rg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#fef3c7" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05" />
+          </radialGradient>
+          <linearGradient id="fill3d" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#b45309" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.2" />
+          </linearGradient>
+        </defs>
 
-      {gridPolygons.map((pts, i) => (
-        <polygon key={i} points={pts}
-          fill={i === gridPolygons.length - 1 ? 'url(#rg)' : 'none'}
-          stroke="#e2e8f0" strokeWidth="0.8"
-          style={{filter: i === gridPolygons.length - 1 ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' : 'none'}}
-        />
-      ))}
-
-      {data.map((_, i) => {
-        const p = polar(i * angleStep, r);
-        return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e2e8f0" strokeWidth="0.8" />;
-      })}
-
-      <polygon points={dataPoints.join(' ')}
-        fill="url(#fill3d)" stroke="#b45309" strokeWidth="2"
-        style={{filter:'drop-shadow(0 4px 12px rgba(180,83,9,0.4))'}}
-      />
-
-      {data.map((d, i) => {
-        const p = polar(i * angleStep, r * (d.score / 100));
-        return (
-          <circle key={i} cx={p.x} cy={p.y} r="4" fill="#b45309"
-            style={{filter:'drop-shadow(0 2px 6px rgba(180,83,9,0.6))'}}
+        {gridPolygons.map((pts, i) => (
+          <polygon key={i} points={pts}
+            fill={i === gridPolygons.length - 1 ? 'url(#rg)' : 'none'}
+            stroke="#e2e8f0" strokeWidth="0.8"
           />
-        );
-      })}
-
-      {data.map((d, i) => {
-        const labelR = r + 22;
-        const p = polar(i * angleStep, labelR);
-        return (
-          <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central"
-            fontSize="9" fill="#475569" fontWeight="500">
-            {d.subject}
-          </text>
-        );
-      })}
-    </svg>
+        ))}
+        {data.map((_, i) => {
+          const p = polar(i * angleStep, r);
+          return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e2e8f0" strokeWidth="0.8" />;
+        })}
+        <polygon points={dataPoints.join(' ')}
+          fill="url(#fill3d)" stroke="#b45309" strokeWidth="2"
+          style={{filter:'drop-shadow(0 4px 12px rgba(180,83,9,0.4))'}}
+        />
+        {data.map((d, i) => {
+          const p = polar(i * angleStep, r * (d.score / 100));
+          return <circle key={i} cx={p.x} cy={p.y} r="4" fill="#b45309"
+            style={{filter:'drop-shadow(0 2px 6px rgba(180,83,9,0.6))'}} />;
+        })}
+        {data.map((d, i) => {
+          const p = polar(i * angleStep, r + 22);
+          return (
+            <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central"
+              fontSize="9" fill="#475569" fontWeight="500">{d.subject}</text>
+          );
+        })}
+      </svg>
+      {loading && (
+        <div style={{
+          position:'absolute', inset:0, display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center', gap:6,
+        }}>
+          <div style={{
+            width:28, height:28, border:'3px solid #e2e8f0',
+            borderTopColor:'#b45309', borderRadius:'50%',
+            animation:'spin 0.8s linear infinite',
+          }} />
+          <span style={{fontSize:11, color:'#b45309', fontWeight:600}}>Gemini分析中...</span>
+        </div>
+      )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
   );
 }
 
@@ -121,27 +118,21 @@ function PieChart3D({ score, color, name }: { score: number; color: string; name
           <stop offset="100%" stopColor={color} stopOpacity="0.4" />
         </linearGradient>
       </defs>
-
       <ellipse cx={cx} cy={cy + height} rx={rx} ry={ry} fill="#e2e8f0" opacity="0.5" />
-
       {pct > 0 && (
         <>
           <path d={slicePathBottom} fill={color} opacity="0.4" />
-          {(pct < 0.5 || true) && (
-            <path
-              d={`M ${x1} ${y1} L ${x1} ${y1 + height} A ${r} ${r} 0 ${large} 1 ${x2} ${y2 + height} L ${x2} ${y2} A ${r} ${r} 0 ${large} 0 ${x1} ${y1} Z`}
-              fill={`url(#cyl-${name})`}
-              style={{filter:`drop-shadow(2px 2px 4px ${color}66)`}}
-            />
-          )}
+          <path
+            d={`M ${x1} ${y1} L ${x1} ${y1 + height} A ${r} ${r} 0 ${large} 1 ${x2} ${y2 + height} L ${x2} ${y2} A ${r} ${r} 0 ${large} 0 ${x1} ${y1} Z`}
+            fill={`url(#cyl-${name})`}
+            style={{filter:`drop-shadow(2px 2px 4px ${color}66)`}}
+          />
           <path d={slicePath} fill={color} opacity="0.9"
             style={{filter:`drop-shadow(0 -2px 6px ${color}88)`}}
           />
         </>
       )}
-
       <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="#e2e8f0" strokeWidth="1" />
-
       <text x={cx} y={cy + 4} textAnchor="middle" fontSize="13" fontWeight="800" fill={color}>{score}%</text>
     </svg>
   );
@@ -150,8 +141,30 @@ function PieChart3D({ score, color, name }: { score: number; color: string; name
 export default function ResultPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
+
+  const [radarScores, setRadarScores] = useState<{ subject: string; score: number }[]>([]);
+  const [isLoadingGemini, setIsLoadingGemini] = useState(true);
+  const [geminiError, setGeminiError] = useState(false);
+
+  useEffect(() => {
+    if (!state) return;
+    const fallback = (state.axisScores as AxisScore[]).map((a) => ({ subject: a.name, score: a.score }));
+    setRadarScores(fallback);
+
+    fetchGeminiAxisScores(state.answers)
+      .then((scores) => {
+        setRadarScores(scores.map((a) => ({ subject: a.name, score: a.score })));
+      })
+      .catch(() => {
+        setGeminiError(true);
+      })
+      .finally(() => {
+        setIsLoadingGemini(false);
+      });
+  }, []);
+
   if (!state) { navigate('/'); return null; }
-  const { totalScore, rank, rankLabel, diagnosisType, bottleneck, improvements, nextActions, aiComment, axisScores, aiScores } = state;
+  const { totalScore, rank, rankLabel, diagnosisType, bottleneck, improvements, nextActions, aiComment, aiScores } = state;
   const rankColor = RANK_COLORS[rank] ?? '#6b7280';
 
   return (
@@ -169,9 +182,26 @@ export default function ResultPage() {
         </div>
 
         <div style={{background:'#fff', borderRadius:20, border:'1px solid #e2e8f0', padding:24}}>
-          <h2 style={{fontSize:15, fontWeight:700, color:'#1e293b', marginBottom:16}}>スコア分析（3D レーダー）</h2>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+            <h2 style={{fontSize:15, fontWeight:700, color:'#1e293b', margin:0}}>スコア分析（3D レーダー）</h2>
+            {isLoadingGemini && (
+              <span style={{fontSize:11, color:'#b45309', fontWeight:600, background:'#fef3c7', padding:'2px 8px', borderRadius:20}}>
+                Gemini 分析中...
+              </span>
+            )}
+            {!isLoadingGemini && !geminiError && (
+              <span style={{fontSize:11, color:'#059669', fontWeight:600, background:'#d1fae5', padding:'2px 8px', borderRadius:20}}>
+                ✓ Gemini 反映済み
+              </span>
+            )}
+            {geminiError && (
+              <span style={{fontSize:11, color:'#64748b', fontWeight:600, background:'#f1f5f9', padding:'2px 8px', borderRadius:20}}>
+                ロジックスコア使用
+              </span>
+            )}
+          </div>
           <div style={{display:'flex', justifyContent:'center'}}>
-            <Radar3D data={axisScores} />
+            <Radar3D data={radarScores} loading={isLoadingGemini} />
           </div>
         </div>
 
@@ -181,8 +211,8 @@ export default function ResultPage() {
             {aiScores.map((ai: any) => (
               <div key={ai.name} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:4}}>
                 <PieChart3D score={ai.score} color={ai.color} name={ai.name} label={ai.label} />
-                <p style={{fontSize:12, fontWeight:700, color:'#334155'}}>{ai.name}</p>
-                <p style={{fontSize:11, color:'#94a3b8', textAlign:'center'}}>{ai.label}</p>
+                <p style={{fontSize:12, fontWeight:700, color:'#334155', margin:0}}>{ai.name}</p>
+                <p style={{fontSize:11, color:'#94a3b8', textAlign:'center', margin:0}}>{ai.label}</p>
               </div>
             ))}
           </div>
