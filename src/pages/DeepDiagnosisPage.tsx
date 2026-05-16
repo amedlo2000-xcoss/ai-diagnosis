@@ -26,9 +26,9 @@ async function fetchDeepDiagnosis(state: any): Promise<DeepResult> {
 ${qaPairs}
 
 【店舗情報】
-HP URL: ${state.hpUrl || '未入力'}
-GoogleビジネスプロフィールURL: ${state.googleUrl || '未入力'}
-SNS URL: ${state.snsUrl || '未入力'}
+${state.hpUrl ? `HP URL: ${state.hpUrl}` : 'HP URL: （情報なし）'}
+${state.googleUrl ? `GoogleビジネスプロフィールURL: ${state.googleUrl}` : 'GoogleビジネスプロフィールURL: （情報なし）'}
+${state.snsUrl ? `SNS URL: ${state.snsUrl}` : 'SNS URL: （情報なし）'}
 補足情報: ${state.storeInfo || 'なし'}
 
 ※URLは実際にアクセスせず、URLの文字列パターン・補足情報・アンケート回答から推測して評価してください。
@@ -43,19 +43,21 @@ SNS URL: ${state.snsUrl || '未入力'}
   "summary": "総評コメント（3〜4文）"
 }`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3 },
-      }),
-    }
-  );
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.3 },
+  });
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+  let res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+  if (res.status === 429) {
+    await new Promise(r => setTimeout(r, 5000));
+    res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+  }
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('アクセスが集中しています。しばらく待ってから再試行してください。');
+    throw new Error(`Gemini API error: ${res.status}`);
+  }
 
   const data = await res.json();
   const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
@@ -96,14 +98,18 @@ export default function DeepDiagnosisPage() {
   const [result, setResult] = useState<DeepResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (!state) { navigate('/'); return; }
+    setLoading(true);
+    setError('');
+    setResult(null);
     fetchDeepDiagnosis(state)
       .then(setResult)
       .catch((e) => setError(e.message ?? 'エラーが発生しました'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryKey]);
 
   if (!state) return null;
 
@@ -137,14 +143,19 @@ export default function DeepDiagnosisPage() {
         {error && (
           <div style={{background:'#fff', borderRadius:20, border:'1px solid #fecaca', padding:24}}>
             <p style={{fontSize:14, color:'#dc2626', fontWeight:600}}>⚠ {error}</p>
-            <p style={{fontSize:13, color:'#64748b', marginTop:8}}>
-              VITE_GEMINI_API_KEYが設定されているか確認してください。
-            </p>
-            <button onClick={() => navigate(-1)}
-              style={{marginTop:12, padding:'8px 20px', borderRadius:10, border:'1px solid #e2e8f0',
-                background:'#f8fafc', color:'#64748b', fontSize:13, cursor:'pointer'}}>
-              戻る
-            </button>
+            <div style={{display:'flex', gap:10, marginTop:12, flexWrap:'wrap'}}>
+              <button onClick={() => setRetryKey(k => k + 1)}
+                style={{padding:'8px 20px', borderRadius:10, border:'none',
+                  background:'linear-gradient(135deg,#1e3a5f,#b45309)', color:'#fff',
+                  fontSize:13, fontWeight:600, cursor:'pointer'}}>
+                再試行
+              </button>
+              <button onClick={() => navigate(-1)}
+                style={{padding:'8px 20px', borderRadius:10, border:'1px solid #e2e8f0',
+                  background:'#f8fafc', color:'#64748b', fontSize:13, cursor:'pointer'}}>
+                戻る
+              </button>
+            </div>
           </div>
         )}
 

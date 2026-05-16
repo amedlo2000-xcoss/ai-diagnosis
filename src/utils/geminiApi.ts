@@ -27,19 +27,21 @@ ${qaPairs}
 返答形式（JSONのみ、他のテキスト不要）:
 {"行く理由の明確性":数値,"AI理解度":数値,"媒体一貫性":数値,"差別化":数値,"来店目的の強さ":数値}`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2 },
-      }),
-    }
-  );
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.2 },
+  });
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+  let res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+  if (res.status === 429) {
+    await new Promise(r => setTimeout(r, 5000));
+    res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+  }
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('アクセスが集中しています。しばらく待ってから再試行してください。');
+    throw new Error(`Gemini API error: ${res.status}`);
+  }
 
   const data = await res.json();
   const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';

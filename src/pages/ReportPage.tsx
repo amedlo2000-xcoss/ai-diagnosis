@@ -118,6 +118,8 @@ export default function ReportPage() {
   const rankColor = RANK_COLORS[rank] ?? '#6b7280';
   const radarData = axisScores.map((a: any) => ({ subject: a.name, score: Math.round(a.score * 0.8) }));
 
+  const canSubmit = !!(form.hpUrl || form.googleUrl || form.snsUrl || form.storeInfo);
+
   function copyText(text: string, key: string) {
     navigator.clipboard.writeText(text);
     setCopied(key);
@@ -259,11 +261,16 @@ export default function ReportPage() {
           </div>
           <button
             onClick={() => navigate('/deep-diagnosis', { state: { ...state, ...form } })}
+            disabled={!canSubmit}
             style={{marginTop:16, width:'100%', padding:'14px', borderRadius:12, fontWeight:700,
-              color:'#fff', fontSize:15, border:'none', cursor:'pointer',
-              background:'linear-gradient(135deg,#1e3a5f,#b45309)',
-              boxShadow:'0 4px 16px rgba(180,83,9,0.3)'}}>
-            AI詳細診断を実行 →
+              color:'#fff', fontSize:15, border:'none',
+              cursor: canSubmit ? 'pointer' : 'not-allowed',
+              background: canSubmit
+                ? 'linear-gradient(135deg,#1e3a5f,#b45309)'
+                : '#cbd5e1',
+              boxShadow: canSubmit ? '0 4px 16px rgba(180,83,9,0.3)' : 'none',
+              transition:'background 0.2s, box-shadow 0.2s'}}>
+            {canSubmit ? 'AI詳細診断を実行 →' : '1つ以上入力してください'}
           </button>
         </div>
 
