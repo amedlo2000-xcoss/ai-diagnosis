@@ -1,77 +1,35 @@
-import type { AIScore, AxisScores } from "../types";
+import { AIScore, DiagnosisAnswers } from '../types';
 
-export const AI_SCORES: AIScore[] = [
-  {
-    name: "Gemini",
-    color: "#4285f4",
-    scores: {
-      action_volume: 50,
-      contact_frequency: 50,
-      relationship: 50,
-      response_rate: 50,
-      result_connection: 50,
+export function calculateAIScores(answers: DiagnosisAnswers): AIScore[] {
+  const vals = Object.values(answers);
+  const avg = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 1.5;
+  const base = Math.round((1 - avg / 3) * 100);
+
+  const chatgpt = Math.min(100, Math.max(20, base + 5));
+  const gemini = Math.min(100, Math.max(20, base - 8));
+  const claude = Math.min(100, Math.max(20, base + 10));
+
+  return [
+    {
+      name: 'ChatGPT',
+      label: 'AI検索適合度',
+      score: chatgpt,
+      comment: `AI検索での推薦されやすさは${chatgpt}%です。行く理由の明確さが鍵です。`,
+      color: '#10a37f',
     },
-  },
-  {
-    name: "Claude",
-    color: "#534AB7",
-    scores: {
-      action_volume: 50,
-      contact_frequency: 50,
-      relationship: 50,
-      response_rate: 50,
-      result_connection: 50,
+    {
+      name: 'Gemini',
+      label: 'ローカル検索適合度',
+      score: gemini,
+      comment: `Googleローカル検索での適合度は${gemini}%です。Googleプロフィールの充実が重要です。`,
+      color: '#4285f4',
     },
-  },
-];
-
-export function calcAIAverage(ai: AIScore): number {
-  if (!ai || !ai.scores) return 0;
-  const values = Object.values(ai.scores);
-  return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-}
-
-// Claudeのスコアをユーザーの回答から計算する
-export function calcClaudeScore(axisScores: AxisScores): AxisScores {
-  return {
-    action_volume: Math.min(100, Math.round(axisScores.action_volume * 0.95 + 5)),
-    contact_frequency: Math.min(100, Math.round(axisScores.contact_frequency * 0.92 + 8)),
-    relationship: Math.min(100, Math.round(axisScores.relationship * 0.98 + 3)),
-    response_rate: Math.min(100, Math.round(axisScores.response_rate * 0.94 + 6)),
-    result_connection: Math.min(100, Math.round(axisScores.result_connection * 0.96 + 4)),
-  };
-}
-
-export async function fetchGeminiScore(axisScores: AxisScores): Promise<AxisScores> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) return axisScores;
-
-  const prompt = `あなたはビジネス行動診断の専門家です。以下のユーザーの行動スコアを分析して、各軸を0〜100で評価してください。JSONのみ返してください。ユーザースコア：行動量${axisScores.action_volume}、接触頻度${axisScores.contact_frequency}、関係構築${axisScores.relationship}、反応率${axisScores.response_rate}、結果接続力${axisScores.result_connection}。形式：{"action_volume":数値,"contact_frequency":数値,"relationship":数値,"response_rate":数値,"result_connection":数値}`;
-
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      }
-    );
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return axisScores;
-    const parsed = JSON.parse(match[0]);
-    return {
-      action_volume: Number(parsed.action_volume) || axisScores.action_volume,
-      contact_frequency: Number(parsed.contact_frequency) || axisScores.contact_frequency,
-      relationship: Number(parsed.relationship) || axisScores.relationship,
-      response_rate: Number(parsed.response_rate) || axisScores.response_rate,
-      result_connection: Number(parsed.result_connection) || axisScores.result_connection,
-    };
-  } catch {
-    return axisScores;
-  }
+    {
+      name: 'Claude',
+      label: '文脈理解適合度',
+      score: claude,
+      comment: `AIによる文脈理解度は${claude}%です。利用シーンと客層の記述が評価されています。`,
+      color: '#d97706',
+    },
+  ];
 }

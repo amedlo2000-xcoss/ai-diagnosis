@@ -1,45 +1,36 @@
-import { AxisScores, DiagnosisResult, AIScore } from "../types";
-import { AXIS_KEYS, AXIS_LABELS } from "./scoring";
-import { calcAIAverage } from "./aiScores";
+import { AxisScore } from '../types';
 
-// レポート用のデータをまとめる
-export interface ReportData {
-  totalScore: number;
-  axisScores: AxisScores;
-  diagnosis: DiagnosisResult;
-  aiScores: AIScore[];
-  commonInsight: string;
+export interface ReportSection {
+  title: string;
+  items: string[];
 }
 
-// レポートデータを生成する
-export function generateReportData(
-  totalScore: number,
-  axisScores: AxisScores,
-  diagnosis: DiagnosisResult,
-  aiScores: AIScore[]
-): ReportData {
-  return {
-    totalScore,
-    axisScores,
-    diagnosis,
-    aiScores,
-    commonInsight:
-      "3つのAIモデルが共通して指摘しているのは「行動量と成果の間にある変換効率の問題」です。接触数を増やすだけでなく、質と継続性を組み合わせたアプローチが有効とされています。",
-  };
-}
+export function generateReportSections(axisScores: AxisScore[], totalScore: number): ReportSection[] {
+  const weak = axisScores.filter(a => a.score < 50).map(a => a.name);
+  const strong = axisScores.filter(a => a.score >= 70).map(a => a.name);
 
-// Googleスプレッドシート連携用にデータをJSON化する（将来の拡張ポイント）
-export function exportToSheetFormat(report: ReportData) {
-  return {
-    totalScore: report.totalScore,
-    diagnosisType: report.diagnosis.type,
-    ...AXIS_KEYS.reduce((acc, key) => {
-      acc[AXIS_LABELS[key]] = report.axisScores[key];
-      return acc;
-    }, {} as Record<string, number>),
-    ...report.aiScores.reduce((acc, ai) => {
-      acc[`AI_${ai.name}`] = calcAIAverage(ai);
-      return acc;
-    }, {} as Record<string, number>),
-  };
+  return [
+    {
+      title: '共通見解',
+      items: [
+        'AI検索では「行く理由」が明確な店舗ほど推薦されやすくなっています。',
+        '複数媒体（HP・Google・SNS）で一貫したメッセージを発信することが重要です。',
+        '客層と利用シーンの明確化がAI理解度を大きく向上させます。',
+      ],
+    },
+    {
+      title: '改善が必要な点',
+      items: weak.length > 0
+        ? weak.map(w => `「${w}」のスコアが低く、優先的に改善が必要です。`)
+        : ['全体的なバランスは取れていますが、さらなる差別化が求められます。'],
+    },
+    {
+      title: 'おすすめ次のアクション',
+      items: [
+        'Googleビジネスプロフィールの説明文に「行く理由」を3つ追記する',
+        'HPのファーストビューに客層・利用シーンを明示する',
+        'SNSプロフィールに差別化ポイントを1行で入れる',
+      ],
+    },
+  ];
 }

@@ -1,115 +1,215 @@
-import { type AxisScores, type DiagnosisResult, type AIScore, type UserType, USER_TYPE_LABELS } from "../types";
-import { AXIS_KEYS, AXIS_LABELS } from "../data/scoring";
-import { calcAIAverage } from "../data/aiScores";
-import { generateReportData } from "../data/reportData";
-import RadarChartCard from "../components/RadarChartCard";
-import RecommendationCard from "../components/RecommendationCard";
-import ResultHeader from "../components/ResultHeader";
+import { useLocation, useNavigate } from 'react-router-dom';
+import { generateReportSections } from '../data/reportData';
+import { useState } from 'react';
 
-interface Props {
-  axisScores: AxisScores;
-  totalScore: number;
-  diagnosis: DiagnosisResult;
-  aiScores: AIScore[];
-  userType: UserType;
-  onBack: () => void;
-  onRetry: () => void;
-  onRegister: () => void;
+function Radar3D({ data }: { data: { subject: string; score: number }[] }) {
+  const size = 220;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = 80;
+  const n = data.length;
+  const levels = [0.25, 0.5, 0.75, 1.0];
+  function polar(angle: number, radius: number) {
+    const a = angle - Math.PI / 2;
+    return { x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) };
+  }
+  const angleStep = (2 * Math.PI) / n;
+  const gridPolygons = levels.map((lv) =>
+    data.map((_, i) => { const p = polar(i * angleStep, r * lv); return `${p.x},${p.y}`; }).join(' ')
+  );
+  const dataPoints = data.map((d, i) => { const p = polar(i * angleStep, r * (d.score / 100)); return `${p.x},${p.y}`; });
+  const avgPoints = data.map((_, i) => { const p = polar(i * angleStep, r * 0.72); return `${p.x},${p.y}`; });
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <defs>
+        <radialGradient id="rg2" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fef3c7" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05" />
+        </radialGradient>
+        <linearGradient id="fill3d2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#b45309" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.2" />
+        </linearGradient>
+        <linearGradient id="avg3d" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1e3a5f" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1" />
+        </linearGradient>
+      </defs>
+      {gridPolygons.map((pts, i) => (
+        <polygon key={i} points={pts}
+          fill={i === gridPolygons.length - 1 ? 'url(#rg2)' : 'none'}
+          stroke="#e2e8f0" strokeWidth="0.8" />
+      ))}
+      {data.map((_, i) => {
+        const p = polar(i * angleStep, r);
+        return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e2e8f0" strokeWidth="0.8" />;
+      })}
+      <polygon points={avgPoints.join(' ')} fill="url(#avg3d)" stroke="#1e3a5f" strokeWidth="1.5" strokeDasharray="4 2" />
+      <polygon points={dataPoints.join(' ')} fill="url(#fill3d2)" stroke="#b45309" strokeWidth="2"
+        style={{filter:'drop-shadow(0 4px 12px rgba(180,83,9,0.4))'}} />
+      {data.map((d, i) => {
+        const p = polar(i * angleStep, r * (d.score / 100));
+        return <circle key={i} cx={p.x} cy={p.y} r="4" fill="#b45309"
+          style={{filter:'drop-shadow(0 2px 6px rgba(180,83,9,0.6))'}} />;
+      })}
+      {data.map((d, i) => {
+        const p = polar(i * angleStep, r + 22);
+        return (
+          <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central"
+            fontSize="9" fill="#475569" fontWeight="500">{d.subject}</text>
+        );
+      })}
+    </svg>
+  );
 }
 
-export default function ReportPage({ axisScores, totalScore, diagnosis, aiScores, userType, onBack, onRetry, onRegister }: Props) {
-  const report = generateReportData(totalScore, axisScores, diagnosis, aiScores);
+function PieChart3D({ score, color, name, label }: { score: number; color: string; name: string; label: string }) {
+  const size = 110; const cx = size / 2; const cy = size / 2 - 6;
+  const r = 38; const height = 10;
+  const pct = score / 100;
+  const angle = pct * 2 * Math.PI;
+  const x1 = cx + r * Math.sin(0); const y1 = cy - r * Math.cos(0);
+  const x2 = cx + r * Math.sin(angle); const y2 = cy - r * Math.cos(angle);
+  const large = pct > 0.5 ? 1 : 0;
+  const slicePath = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+  return (
+    <svg width={size} height={size + 20} viewBox={`0 0 ${size} ${size + 20}`}>
+      <defs>
+        <linearGradient id={`cyl2-${name}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.9" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.4" />
+        </linearGradient>
+      </defs>
+      <ellipse cx={cx} cy={cy + height} rx={44} ry={18} fill="#e2e8f0" opacity="0.5" />
+      {pct > 0 && (
+        <>
+          <path d={`M ${cx} ${cy + height} L ${x1} ${y1 + height} A ${r} ${r} 0 ${large} 1 ${x2} ${y2 + height} Z`} fill={color} opacity="0.4" />
+          <path d={`M ${x1} ${y1} L ${x1} ${y1 + height} A ${r} ${r} 0 ${large} 1 ${x2} ${y2 + height} L ${x2} ${y2} A ${r} ${r} 0 ${large} 0 ${x1} ${y1} Z`}
+            fill={`url(#cyl2-${name})`} style={{filter:`drop-shadow(2px 2px 4px ${color}66)`}} />
+          <path d={slicePath} fill={color} opacity="0.9" style={{filter:`drop-shadow(0 -2px 6px ${color}88)`}} />
+        </>
+      )}
+      <ellipse cx={cx} cy={cy} rx={44} ry={18} fill="none" stroke="#e2e8f0" strokeWidth="1" />
+      <text x={cx} y={cy + 4} textAnchor="middle" fontSize="13" fontWeight="800" fill={color}>{score}%</text>
+    </svg>
+  );
+}
 
-  if (!aiScores || aiScores.length === 0) {
-    return (
-      <div style={{ padding: "1.5rem 0" }}>
-        <p style={{ color: "var(--color-text-secondary)" }}>読み込み中...</p>
-      </div>
-    );
+const RANK_COLORS: Record<string, string> = {
+  SS: '#7c3aed', S: '#2563eb', A: '#059669',
+  B: '#d97706', C: '#ea580c', D: '#dc2626', E: '#6b7280',
+};
+
+export default function ReportPage() {
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const [copied, setCopied] = useState<string | null>(null);
+  if (!state) { navigate('/'); return null; }
+  const { totalScore, rank, axisScores, aiScores, generatedCopy } = state;
+  const sections = generateReportSections(axisScores, totalScore);
+  const rankColor = RANK_COLORS[rank] ?? '#6b7280';
+  const radarData = axisScores.map((a: any) => ({ subject: a.name, score: Math.round(a.score * 0.8) }));
+
+  function copyText(text: string, key: string) {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
   }
 
   return (
-    <div style={{ padding: "1.5rem 0" }}>
-      <ResultHeader title="詳細レポート" subtitle={`${USER_TYPE_LABELS[userType]} · AI複数視点による分析レポートです`} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "1rem" }}>
-        <div style={{ background: "var(--color-background-secondary)", borderRadius: "8px", padding: "1rem", textAlign: "center" }}>
-          <div style={{ fontSize: "13px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>総合スコア</div>
-          <div style={{ fontSize: "28px", fontWeight: 500, color: "var(--color-text-primary)" }}>{totalScore}<span style={{ fontSize: "14px", color: "var(--color-text-secondary)" }}>pt</span></div>
+    <div style={{minHeight:'100vh', background:'#f8fafc', padding:'40px 16px'}}>
+      <div style={{maxWidth:600, margin:'0 auto', display:'flex', flexDirection:'column', gap:20}}>
+
+        <div style={{background:'#fff', borderRadius:20, border:'1px solid #e2e8f0', padding:24}}>
+          <h1 style={{fontSize:18, fontWeight:900, color:'#0f172a', marginBottom:4}}>詳細レポート</h1>
+          <p style={{fontSize:13, color:'#64748b', marginBottom:16}}>APP Purpose Search</p>
+          <div style={{display:'flex', alignItems:'flex-end', gap:12}}>
+            <span style={{fontSize:22, fontWeight:700, color:'#94a3b8'}}>{totalScore}点</span>
+            <span style={{fontSize:52, fontWeight:900, lineHeight:1, color:rankColor, textShadow:`0 4px 20px ${rankColor}44`}}>{rank}級</span>
+            <span style={{fontSize:13, color:'#94a3b8', marginBottom:4}}>総合スコア</span>
+          </div>
         </div>
-        <div style={{ background: "var(--color-background-secondary)", borderRadius: "8px", padding: "1rem", textAlign: "center" }}>
-          <div style={{ fontSize: "13px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>診断タイプ</div>
-          <div style={{ fontSize: "16px", fontWeight: 500, color: diagnosis.color, marginTop: "4px" }}>{diagnosis.type}</div>
-        </div>
-      </div>
-      <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
-        <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "12px" }}>AI別スコア比較</p>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          {aiScores.map((ai) => {
-            const avg = calcAIAverage(ai);
-            return (
-              <div key={ai.name} style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1rem 1.25rem", flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "4px" }}>{ai.name}</div>
-                <div style={{ fontSize: "22px", fontWeight: 500, color: ai.color, marginBottom: "6px" }}>{avg}%</div>
-                <div style={{ height: "8px", background: "var(--color-background-secondary)", borderRadius: "4px" }}>
-                  <div style={{ height: "100%", width: `${avg}%`, background: ai.color, borderRadius: "4px" }} />
-                </div>
-                <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "6px" }}>
-                  {ai.name === "Gemini" ? "※Gemini API" : "※Claudeスコア"}
-                </div>
+
+        <div style={{background:'#fff', borderRadius:20, border:'1px solid #e2e8f0', padding:24}}>
+          <h2 style={{fontSize:15, fontWeight:700, color:'#1e293b', marginBottom:16}}>AI別スコア比較（3D）</h2>
+          <div style={{display:'flex', justifyContent:'space-around', alignItems:'flex-start'}}>
+            {aiScores.map((ai: any) => (
+              <div key={ai.name} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:4}}>
+                <PieChart3D score={ai.score} color={ai.color} name={ai.name} label={ai.label} />
+                <p style={{fontSize:12, fontWeight:700, color:'#334155', margin:0}}>{ai.name}</p>
+                <p style={{fontSize:11, color:'#94a3b8', textAlign:'center', margin:0}}>{ai.label}</p>
               </div>
-            );
-          })}
-        </div>
-      </div>
-      <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem", overflowX: "auto" }}>
-        <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "12px" }}>評価項目別比較</p>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-          <thead>
-            <tr style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
-              <th style={{ textAlign: "left", padding: "8px 0", fontWeight: 500, color: "var(--color-text-secondary)" }}>軸</th>
-              <th style={{ padding: "8px", textAlign: "center", color: "#534AB7", fontWeight: 500 }}>あなたの<br />回答スコア</th>
-              {aiScores.map((ai) => (
-                <th key={ai.name} style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: ai.color }}>{ai.name}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {AXIS_KEYS.map((key) => (
-              <tr key={key} style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
-                <td style={{ padding: "8px 0", color: "var(--color-text-secondary)" }}>{AXIS_LABELS[key]}</td>
-                <td style={{ padding: "8px", textAlign: "center", fontWeight: 500, color: "#534AB7" }}>{Math.round(axisScores[key] * 0.8)}%</td>
-                {aiScores.map((ai) => (
-                  <td key={ai.name} style={{ padding: "8px", textAlign: "center" }}>{ai.scores[key]}%</td>
-                ))}
-              </tr>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
+
+        <div style={{background:'#fff', borderRadius:20, border:'1px solid #e2e8f0', padding:24}}>
+          <h2 style={{fontSize:15, fontWeight:700, color:'#1e293b', marginBottom:4}}>レーダーチャート（3D）</h2>
+          <p style={{fontSize:11, color:'#94a3b8', marginBottom:12}}>
+            <span style={{display:'inline-block', width:20, height:2, background:'#b45309', verticalAlign:'middle', marginRight:4}}></span>あなた
+            <span style={{display:'inline-block', width:20, height:2, background:'#1e3a5f', verticalAlign:'middle', marginRight:4, borderTop:'2px dashed #1e3a5f'}}></span>AI平均
+          </p>
+          <div style={{display:'flex', justifyContent:'center'}}>
+            <Radar3D data={radarData} />
+          </div>
+        </div>
+
+        <div style={{background:'#fff', borderRadius:20, border:'1px solid #e2e8f0', padding:24}}>
+          <h2 style={{fontSize:15, fontWeight:700, color:'#1e293b', marginBottom:12}}>評価項目別比較</h2>
+          <table style={{width:'100%', borderCollapse:'collapse', fontSize:14}}>
+            <thead>
+              <tr style={{borderBottom:'1px solid #e2e8f0'}}>
+                <th style={{textAlign:'left', padding:'8px 0', color:'#64748b', fontWeight:500}}>評価軸</th>
+                <th style={{textAlign:'right', padding:'8px 0', color:'#64748b', fontWeight:500}}>あなた</th>
+                <th style={{textAlign:'right', padding:'8px 0', color:'#64748b', fontWeight:500}}>AI平均</th>
+              </tr>
+            </thead>
+            <tbody>
+              {axisScores.map((a: any) => (
+                <tr key={a.name} style={{borderBottom:'1px solid #f1f5f9'}}>
+                  <td style={{padding:'8px 0', color:'#334155'}}>{a.name}</td>
+                  <td style={{padding:'8px 0', textAlign:'right', fontWeight:700, color:'#b45309'}}>{Math.round(a.score * 0.8)}</td>
+                  <td style={{padding:'8px 0', textAlign:'right', color:'#64748b'}}>72</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {sections.map((sec) => (
+          <div key={sec.title} style={{background:'#fff', borderRadius:20, border:'1px solid #e2e8f0', padding:24}}>
+            <h2 style={{fontSize:15, fontWeight:700, color:'#1e293b', marginBottom:12}}>{sec.title}</h2>
+            {sec.items.map((item, i) => (
+              <div key={i} style={{display:'flex', gap:8, marginBottom:8}}>
+                <span style={{color:'#f59e0b', flexShrink:0}}>•</span>
+                <span style={{fontSize:14, color:'#475569'}}>{item}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {[
+          { key: 'hp', label: 'HP用改善文章', text: generatedCopy.hp },
+          { key: 'google', label: 'Googleプロフィール用改善文章', text: generatedCopy.google },
+          { key: 'sns', label: 'SNSプロフィール用改善文章', text: generatedCopy.sns },
+        ].map(({ key, label, text }) => (
+          <div key={key} style={{background:'#fff', borderRadius:20, border:'1px solid #e2e8f0', padding:24}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+              <h2 style={{fontSize:15, fontWeight:700, color:'#1e293b', margin:0}}>{label}</h2>
+              <button onClick={() => copyText(text, key)}
+                style={{fontSize:12, padding:'4px 12px', borderRadius:8, border:'1px solid #e2e8f0', background:'#f8fafc', color:'#64748b', cursor:'pointer'}}>
+                {copied === key ? '✓ コピー済み' : 'コピー'}
+              </button>
+            </div>
+            <pre style={{fontSize:13, color:'#334155', whiteSpace:'pre-wrap', lineHeight:1.7, background:'#f8fafc', borderRadius:12, padding:16, border:'1px solid #e2e8f0', margin:0, fontFamily:'inherit'}}>{text}</pre>
+          </div>
+        ))}
+
+        <button onClick={() => navigate('/')}
+          style={{width:'100%', padding:'12px', borderRadius:14, fontWeight:500, color:'#64748b', fontSize:14, border:'1px solid #e2e8f0', background:'#fff', cursor:'pointer'}}>
+          トップに戻る
+        </button>
       </div>
-      <RadarChartCard axisScores={axisScores} aiScores={aiScores} />
-      <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
-        <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "8px" }}>共通見解</p>
-        <p style={{ fontSize: "14px", lineHeight: 1.7, color: "var(--color-text-secondary)", marginBottom: "1.25rem" }}>{report.commonInsight}</p>
-        <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "1.25rem 0" }} />
-        <RecommendationCard title="改善提案" items={diagnosis.improvements} />
-        <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "1.25rem 0" }} />
-        <RecommendationCard title="おすすめ次のアクション" items={diagnosis.actions} accentColor={diagnosis.color} accentBg={diagnosis.bg} />
-      </div>
-      <button onClick={onBack} style={{ width: "100%", padding: "10px 24px", border: "0.5px solid var(--color-border-secondary)", borderRadius: "8px", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: "14px", fontWeight: 500, cursor: "pointer", marginTop: "0.5rem" }}>
-        ← 診断結果に戻る
-      </button>
-      <button
-        onClick={onRetry}
-        style={{ width: "100%", padding: "12px 24px", border: "0.5px solid var(--color-border-secondary)", borderRadius: "8px", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: "14px", fontWeight: 500, cursor: "pointer", marginTop: "10px" }}
-      >
-        もう一度診断する
-      </button>
-      <button
-        onClick={onRegister}
-        style={{ width: "100%", padding: "13px 24px", background: "#534AB7", color: "#EEEDFE", border: "none", borderRadius: "8px", fontSize: "15px", fontWeight: 600, cursor: "pointer", marginTop: "10px" }}
-      >
-        さらに診断精度をUPしたい
-      </button>
     </div>
   );
 }
